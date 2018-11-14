@@ -1,0 +1,3 @@
+[submodule "Drivers/app"]
+	path = Drivers/app
+	url = git@github.com:GoliathUA/C_STM32_AppLib.git
