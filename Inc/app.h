@@ -1,13 +1,17 @@
 #include <ringbuffer_dma.h>
 #include <lcd.h>
 #include <i2c.h>
+#include <mpu_drv.h>
+#include <eMPL/inv_mpu.h>
+#include <MadgwickAHRS.h>
+#include <3Dbox.h>
 
 #include "tim.h"
 #include "cmsis_os.h"
-#include "app_util.h"
 #include "usart.h"
 #include "adc.h"
 #include "BMP280.h"
+#include "arkanoid.h"
 
 #define APP_DEBUG_MODE 1
 #define APP_READ_BUFER_SIZE 256
@@ -22,12 +26,33 @@ typedef struct
 
 } APP_StateTypeDef;
 
+typedef struct
+{
+    float yaw, pitch, roll;
+} APP_MotionTypeDef;
+
 struct
 {
     uint16_t QNH;
     double temp, press, alt;
 
 } meteo_data;
+
+struct
+{
+    uint16_t accScale;
+    short intStatus;
+    float gyroScale, magScale;
+    uint32_t lastTime, index;
+
+    int16_t acc[3], gyro[3], mag[3];
+
+    uint16_t boxWidth, boxDepth, boxHeight;
+    Object3d__HandleTypeDef box;
+
+    osMailQId queueHandle;
+
+} motion_data;
 
 struct
 {
@@ -71,6 +96,8 @@ struct
 
     APP_StateTypeDef *state;
 
+    APP_RenderingEngineTypeDef renderingEngine;
+
 } app;
 
 void App_Init(
@@ -80,9 +107,11 @@ void App_Init(
     osMutexId *sensorsMutexHandle,
     osMutexId *appMutexHandle);
 void __App_Init_BMP(void);
+void __App_Init_MPU(void);
 void __App_Init_RemoteCommand(void);
 void __App_Init_Harvesters(void);
 void __App_Init_States(void);
+void __App_Init_Arkanoid(void);
 
 void App_OnReadRemoteCommand(void);
 
@@ -96,6 +125,10 @@ void App_Handle_Command_Menu(char *params);
 
 void App_Handle_State_Menu(char *state);
 void App_Handle_State_Meteo(char *state);
+void App_Handle_State_Motion(char *state);
+void App_Handle_State_Arkanoid(char *state);
 
 void App_Handle_Harvester_Meteo(char *state);
+void App_Handle_Harvester_Motion(char *state);
+void App_Handle_Harvester_Arkanoid(char *state);
 
