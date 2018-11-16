@@ -3,20 +3,16 @@
 void App_Init(
     UART_HandleTypeDef *uart,
     ADC_HandleTypeDef *adc,
-    I2C_HandleTypeDef *i2c,
-    osMutexId *sensorsMutexHandle,
-    osMutexId *appMutexHandle)
+    I2C_HandleTypeDef *i2c)
 {
     app.uart = uart;
     app.adc = adc;
     app.i2c = i2c;
-    app.sensorsMutexHandle = sensorsMutexHandle;
-    app.appMutexHandle = appMutexHandle;
 
-    LCD_Init();
+    __App_Init_Rendering();
 
 #if APP_DEBUG_MODE
-    LCD_Printf("Initing...\n");
+    app.renderingEngine.printf("Initing...\n");
 #endif
 
     __App_Init_RemoteCommand();
@@ -25,10 +21,10 @@ void App_Init(
     __App_Init_Harvesters();
     __App_Init_MPU();
     __App_Init_Arkanoid();
+    __App_Init_EKG();
 
     /* Start ADC using DMA with TIM8 Trigger */
-    HAL_ADC_Start_DMA(app.adc, (uint32_t *) app_buffers.adc, 2);
-
+    // HAL_ADC_Start_DMA(app.adc, (uint32_t *) app_buffers.adc, 2);
     /*
      HAL_TIM_Base_Start(&htim8);
 
@@ -37,7 +33,7 @@ void App_Init(
      */
 }
 
-void __App_Init_Arkanoid(void)
+void __App_Init_Rendering(void)
 {
 #if defined(__LCD_H)
     app.renderingEngine.rect = LCD_FillRect;
@@ -49,6 +45,9 @@ void __App_Init_Arkanoid(void)
     app.renderingEngine.backgroundColor = BLACK;
     app.renderingEngine.screenWidth = TFTWIDTH;
     app.renderingEngine.screenHeight = TFTHEIGHT;
+
+    LCD_Init();
+
 #elif defined(__OLED_H)
     app.renderingEngine.rect = OLED_FillRect;
     app.renderingEngine.color = OLED_Color565;
@@ -60,11 +59,24 @@ void __App_Init_Arkanoid(void)
     app.renderingEngine.screenWidth = OLEDWIDTH;
     app.renderingEngine.screenHeight = OLEDHEIGHT;
 
+    if (OLED_Init(&app.i2c) != HAL_OK) {
+        Error_Handler();
+    }
+
 #else
     error Undefined display lib
 #endif
 
+}
+
+void __App_Init_Arkanoid(void)
+{
     Arkanoid_Init(&app.renderingEngine);
+}
+
+void __App_Init_EKG(void)
+{
+    EKG_Init(&app.renderingEngine, app.adc, ADC_CHANNEL_14);
 }
 
 void __App_Init_RemoteCommand(void)
@@ -98,17 +110,18 @@ void __App_Init_RemoteCommand(void)
 
 void __App_Init_States(void)
 {
-    app.states = APP_CreateCallbackMap(4);
+    app.states = APP_CreateCallbackMap(5);
 
     APP_SetCallbackMapItem(app.states, "menu", App_Handle_State_Menu);
     APP_SetCallbackMapItem(app.states, "meteo", App_Handle_State_Meteo);
     APP_SetCallbackMapItem(app.states, "motion", App_Handle_State_Motion);
     APP_SetCallbackMapItem(app.states, "arkanoid", App_Handle_State_Arkanoid);
+    APP_SetCallbackMapItem(app.states, "ekg", App_Handle_State_EKG);
 }
 
 void __App_Init_Harvesters(void)
 {
-    app.harvesters = APP_CreateCallbackMap(3);
+    app.harvesters = APP_CreateCallbackMap(4);
 
     APP_SetCallbackMapItem(app.harvesters, "meteo", App_Handle_Harvester_Meteo);
     APP_SetCallbackMapItem(
@@ -119,7 +132,7 @@ void __App_Init_Harvesters(void)
         app.harvesters,
         "arkanoid",
         App_Handle_Harvester_Arkanoid);
-
+    APP_SetCallbackMapItem(app.harvesters, "ekg", App_Handle_Harvester_EKG);
 }
 
 void __App_Init_BMP(void)
@@ -343,6 +356,11 @@ void App_Handle_State_Motion(char *state)
     }
 }
 
+void App_Handle_State_EKG(char *state)
+{
+    EKG_Draw();
+}
+
 /////////////////////////
 //  Command Handlers
 /////////////////////////
@@ -459,10 +477,16 @@ void App_Handle_Harvester_Motion(char *state)
 
 void App_Handle_Harvester_Arkanoid(char *state)
 {
-    if (scene.status == ARKANOID_GAME_STATUS_PLAYING) {
+    if (ark_scene.status == ARKANOID_GAME_STATUS_PLAYING) {
         Arkanoid_WorldUpdate();
         App_UpdateSatet();
     }
+}
+
+void App_Handle_Harvester_EKG(char *state)
+{
+    App_UpdateSatet();
+
 }
 
 ///////////////////
@@ -471,8 +495,8 @@ void App_Handle_Harvester_Arkanoid(char *state)
 
 void Arkanoid_HandleRusult()
 {
-    if (scene.status == ARKANOID_GAME_STATUS_WIN) {
-        LCD_SetCursor((scene.width / 2) - 40, scene.height / 2);
+    if (ark_scene.status == ARKANOID_GAME_STATUS_WIN) {
+        LCD_SetCursor((ark_scene.width / 2) - 40, ark_scene.height / 2);
         LCD_FillScreen(BLACK);
         LCD_SetTextColor(WHITE, BLACK);
         LCD_SetTextSize(1);
@@ -480,7 +504,7 @@ void Arkanoid_HandleRusult()
     } else {
         LCD_FillScreen(BLACK);
         LCD_SetTextColor(WHITE, BLACK);
-        LCD_SetCursor((scene.width / 2) - 10, scene.height / 2);
+        LCD_SetCursor((ark_scene.width / 2) - 10, ark_scene.height / 2);
         LCD_Printf("Game Over!");
     }
 

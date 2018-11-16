@@ -48,6 +48,8 @@
 /* Exported functions ------------------------------------------------------- */
 
 void SysTick_Handler(void);
+void EXTI1_IRQHandler(void);
+void EXTI2_IRQHandler(void);
 void DMA1_Stream2_IRQHandler(void);
 void EXTI15_10_IRQHandler(void);
 void TIM8_UP_TIM13_IRQHandler(void);

@@ -12,7 +12,6 @@
 #define ARKANOID_GAME_STATUS_WIN 2
 #define ARKANOID_GAME_STATUS_LOSE 3
 
-
 typedef struct
 {
     int16_t x;
@@ -84,13 +83,13 @@ typedef struct
 
 } ARK_SceneStateTypeDef;
 
-volatile ARK_SceneStateTypeDef scene;
+volatile ARK_SceneStateTypeDef ark_scene;
 
-volatile ARK_BallTypeDef ball;
+volatile ARK_BallTypeDef ark_ball;
 
-volatile ARK_PlayerTypeDef player;
+volatile ARK_PlayerTypeDef ark_player;
 
-volatile ARK_BlockTypeDef* blocks;
+volatile ARK_BlockTypeDef* ark_blocks;
 
 void Arkanoid_Init(APP_RenderingEngineTypeDef *draw_engine);
 

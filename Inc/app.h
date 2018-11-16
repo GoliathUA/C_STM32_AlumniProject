@@ -12,6 +12,7 @@
 #include "adc.h"
 #include "BMP280.h"
 #include "arkanoid.h"
+#include "ekg.h"
 
 #define APP_DEBUG_MODE 1
 #define APP_READ_BUFER_SIZE 256
@@ -91,8 +92,6 @@ struct
 
     osMailQId statesQueueHandle;
 
-    osMutexId sensorsMutexHandle;
-    osMutexId appMutexHandle;
 
     APP_StateTypeDef *state;
 
@@ -103,15 +102,15 @@ struct
 void App_Init(
     UART_HandleTypeDef * uart,
     ADC_HandleTypeDef *adc,
-    I2C_HandleTypeDef *i2c,
-    osMutexId *sensorsMutexHandle,
-    osMutexId *appMutexHandle);
+    I2C_HandleTypeDef *i2c);
 void __App_Init_BMP(void);
 void __App_Init_MPU(void);
 void __App_Init_RemoteCommand(void);
 void __App_Init_Harvesters(void);
 void __App_Init_States(void);
 void __App_Init_Arkanoid(void);
+void __App_Init_Rendering(void);
+void __App_Init_EKG(void);
 
 void App_OnReadRemoteCommand(void);
 
@@ -127,8 +126,9 @@ void App_Handle_State_Menu(char *state);
 void App_Handle_State_Meteo(char *state);
 void App_Handle_State_Motion(char *state);
 void App_Handle_State_Arkanoid(char *state);
+void App_Handle_State_EKG(char *state);
 
 void App_Handle_Harvester_Meteo(char *state);
 void App_Handle_Harvester_Motion(char *state);
 void App_Handle_Harvester_Arkanoid(char *state);
-
+void App_Handle_Harvester_EKG(char *state);
