@@ -16,7 +16,7 @@ void App_Init(
 #endif
 
     __App_Init_RemoteCommand();
-    __App_Init_BMP();
+    __App_Init_Meteo();
     __App_Init_States();
     __App_Init_Harvesters();
     __App_Init_MPU();
@@ -45,6 +45,7 @@ void __App_Init_Rendering(void)
     app.renderingEngine.backgroundColor = BLACK;
     app.renderingEngine.screenWidth = TFTWIDTH;
     app.renderingEngine.screenHeight = TFTHEIGHT;
+    app.renderingEngine.line = LCD_DrawLine;
 
     LCD_Init();
 
@@ -58,6 +59,7 @@ void __App_Init_Rendering(void)
     app.renderingEngine.backgroundColor = OLED_Color_t.Black;
     app.renderingEngine.screenWidth = OLEDWIDTH;
     app.renderingEngine.screenHeight = OLEDHEIGHT;
+    app.renderingEngine.line = OLED_DrawLine;
 
     if (OLED_Init(&app.i2c) != HAL_OK) {
         Error_Handler();
@@ -135,27 +137,16 @@ void __App_Init_Harvesters(void)
     APP_SetCallbackMapItem(app.harvesters, "ekg", App_Handle_Harvester_EKG);
 }
 
-void __App_Init_BMP(void)
+void __App_Init_Meteo(void)
 {
-    app.is_bmp_working = 0;
+    METEO_Init(app.i2c, &app.renderingEngine, APP_QNH);
 
-    int8_t com_rslt;
-
-    app.bmp280.i2c_handle = app.i2c;
-    app.bmp280.dev_addr = BMP280_I2C_ADDRESS1;
-    com_rslt = BMP280_init(&app.bmp280);
-    com_rslt += BMP280_set_power_mode(BMP280_NORMAL_MODE);
-    com_rslt += BMP280_set_work_mode(BMP280_STANDARD_RESOLUTION_MODE);
-    com_rslt += BMP280_set_standby_durn(BMP280_STANDBY_TIME_1_MS);
-    if (com_rslt != SUCCESS) {
+    if (!METEO_DataStruct.isBmpWorking) {
 #if APP_DEBUG_MODE
         LCD_Printf("\t- BMP280 Disabled\n");
 #endif
         return;
     }
-
-    meteo_data.QNH = 1013;
-    app.is_bmp_working = 1;
 
 #if APP_DEBUG_MODE
     LCD_Printf("\t+ BMP280 Available\n");
@@ -322,15 +313,9 @@ void App_Handle_State_Menu(char *state)
 
 void App_Handle_State_Meteo(char *state)
 {
-    LCD_SetCursor(0, 0);
+    METEO_Draw();
 
-    LCD_Printf("METEO Service:\n\n");
-
-    LCD_Printf("\tTemp : %6.2f C\n", meteo_data.temp);
-    LCD_Printf("\tPress: %6.0f Pa\n", meteo_data.press);
-    LCD_Printf("\tAlt  : %3.0f m", meteo_data.alt);
-
-    LCD_Printf("\n\n Back to menu send command: menu");
+    app.renderingEngine.printf("\n\n Back to menu send command: menu");
 }
 
 void App_Handle_State_Motion(char *state)
@@ -398,22 +383,16 @@ void App_Handle_State_Arkanoid(char *state)
 
 void App_Handle_Harvester_Meteo(char *state)
 {
+    double temp = METEO_DataStruct.temp;
+    double press = METEO_DataStruct.press;
+    double alt = METEO_DataStruct.alt;
 
-    double temp, press, alt;
-    BMP280_read_temperature_double(&temp);
-    BMP280_read_pressure_double(&press);
-    /* Calculate current altitude, based on current QNH pressure */
-    alt = BMP280_calculate_altitude(meteo_data.QNH * 100);
+    METEO_UpdateData();
 
-    if (meteo_data.temp != temp || meteo_data.press != press
-            || meteo_data.alt != alt) {
+    if (METEO_DataStruct.temp != temp || METEO_DataStruct.press != press
+            || METEO_DataStruct.alt != alt) {
         App_UpdateSatet();
     }
-
-    meteo_data.temp = temp;
-    meteo_data.press = press;
-    meteo_data.alt = alt;
-
 }
 
 void App_Handle_Harvester_Motion(char *state)
@@ -486,7 +465,6 @@ void App_Handle_Harvester_Arkanoid(char *state)
 void App_Handle_Harvester_EKG(char *state)
 {
     App_UpdateSatet();
-
 }
 
 ///////////////////

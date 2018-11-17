@@ -13,10 +13,12 @@
 #include "BMP280.h"
 #include "arkanoid.h"
 #include "ekg.h"
+#include "meteo.h"
 
 #define APP_DEBUG_MODE 1
 #define APP_READ_BUFER_SIZE 256
 #define APP_DEFAULT_TIMEOUT 100
+#define APP_QNH 1013
 
 typedef struct
 {
@@ -31,13 +33,6 @@ typedef struct
 {
     float yaw, pitch, roll;
 } APP_MotionTypeDef;
-
-struct
-{
-    uint16_t QNH;
-    double temp, press, alt;
-
-} meteo_data;
 
 struct
 {
@@ -77,21 +72,15 @@ struct
 
 struct
 {
-
     ADC_HandleTypeDef *adc;
     UART_HandleTypeDef *uart;
     I2C_HandleTypeDef *i2c;
-
-    bmp280_t bmp280;
-
-    uint8_t is_bmp_working;
 
     APP_CallbackMapTypeDef *states;
     APP_CallbackMapTypeDef *listeners;
     APP_CallbackMapTypeDef *harvesters;
 
     osMailQId statesQueueHandle;
-
 
     APP_StateTypeDef *state;
 
@@ -103,7 +92,7 @@ void App_Init(
     UART_HandleTypeDef * uart,
     ADC_HandleTypeDef *adc,
     I2C_HandleTypeDef *i2c);
-void __App_Init_BMP(void);
+void __App_Init_Meteo(void);
 void __App_Init_MPU(void);
 void __App_Init_RemoteCommand(void);
 void __App_Init_Harvesters(void);
