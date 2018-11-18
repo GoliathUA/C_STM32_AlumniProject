@@ -12,7 +12,7 @@ void App_Init(
     __App_Init_Rendering();
 
 #if APP_DEBUG_MODE
-    app.renderingEngine.printf("Initing...\n");
+    app.display.printf("Initing...\n");
 #endif
 
     __App_Init_RemoteCommand();
@@ -22,44 +22,35 @@ void App_Init(
     __App_Init_MPU();
     __App_Init_Arkanoid();
     __App_Init_EKG();
-
-    /* Start ADC using DMA with TIM8 Trigger */
-    // HAL_ADC_Start_DMA(app.adc, (uint32_t *) app_buffers.adc, 2);
-    /*
-     HAL_TIM_Base_Start(&htim8);
-
-     RingBuffer_DMA_Init(&rx_buf, app.uart->hdmarx, rx, APP_READ_BUFER_SIZE);
-     HAL_UART_Receive_DMA(app.uart, rx, APP_READ_BUFER_SIZE);
-     */
 }
 
 void __App_Init_Rendering(void)
 {
 #if defined(__LCD_H)
-    app.renderingEngine.rect = LCD_FillRect;
-    app.renderingEngine.color = LCD_Color565;
-    app.renderingEngine.circle = LCD_FillCircle;
-    app.renderingEngine.printf = LCD_Printf;
-    app.renderingEngine.cursor = LCD_SetCursor;
-    app.renderingEngine.background = LCD_FillScreen;
-    app.renderingEngine.backgroundColor = BLACK;
-    app.renderingEngine.screenWidth = TFTWIDTH;
-    app.renderingEngine.screenHeight = TFTHEIGHT;
-    app.renderingEngine.line = LCD_DrawLine;
+    app.display.rect = LCD_FillRect;
+    app.display.color = LCD_Color565;
+    app.display.circle = LCD_FillCircle;
+    app.display.printf = LCD_Printf;
+    app.display.cursor = LCD_SetCursor;
+    app.display.background = LCD_FillScreen;
+    app.display.backgroundColor = BLACK;
+    app.display.screenWidth = TFTWIDTH;
+    app.display.screenHeight = TFTHEIGHT;
+    app.display.line = LCD_DrawLine;
 
     LCD_Init();
 
 #elif defined(__OLED_H)
-    app.renderingEngine.rect = OLED_FillRect;
-    app.renderingEngine.color = OLED_Color565;
-    app.renderingEngine.circle = OLED_FillCircle;
-    app.renderingEngine.printf = OLED_Printf;
-    app.renderingEngine.cursor = OLED_SetCursor;
-    app.renderingEngine.background = OLED_FillScreen;
-    app.renderingEngine.backgroundColor = OLED_Color_t.Black;
-    app.renderingEngine.screenWidth = OLEDWIDTH;
-    app.renderingEngine.screenHeight = OLEDHEIGHT;
-    app.renderingEngine.line = OLED_DrawLine;
+    app.display.rect = OLED_FillRect;
+    app.display.color = OLED_Color565;
+    app.display.circle = OLED_FillCircle;
+    app.display.printf = OLED_Printf;
+    app.display.cursor = OLED_SetCursor;
+    app.display.background = OLED_FillScreen;
+    app.display.backgroundColor = OLED_Color_t.Black;
+    app.display.screenWidth = OLEDWIDTH;
+    app.display.screenHeight = OLEDHEIGHT;
+    app.display.line = OLED_DrawLine;
 
     if (OLED_Init(&app.i2c) != HAL_OK) {
         Error_Handler();
@@ -73,40 +64,41 @@ void __App_Init_Rendering(void)
 
 void __App_Init_Arkanoid(void)
 {
-    Arkanoid_Init(&app.renderingEngine);
+    Arkanoid_Init(&app.display);
 }
 
 void __App_Init_EKG(void)
 {
-    EKG_Init(&app.renderingEngine, app.adc, ADC_CHANNEL_14);
+    EKG_Init(&app.display, app.adc, ADC_CHANNEL_14);
 }
 
 void __App_Init_RemoteCommand(void)
 {
-    remote_command.cmd_index = remote_command.is_cmd_params =
-            remote_command.cmd_params_index = 0;
+    remote_command.cmdIndex = remote_command.isCmdParams =
+            remote_command.cmdParamsIndex = 0;
 
     app.listeners = APP_CreateCallbackMap(3);
 
     if (app.listeners == NULL) {
 #if APP_DEBUG_MODE
-        LCD_Printf("\t+ Bluetooth Disabled\n");
+        app.display.printf("\t+ Bluetooth Disabled\n");
 #endif
         return;
     }
 
     APP_SetCallbackMapItem(app.listeners, "ping", App_Handle_Command_Ping);
     APP_SetCallbackMapItem(app.listeners, "menu", App_Handle_Command_Menu);
+    APP_SetCallbackMapItem(app.listeners, "meteo", App_Handle_Command_Meteo);
 
     RingBuffer_DMA_Init(
-        &remote_command.rx_buf,
+        &remote_command.rxBuffer,
         app.uart->hdmarx,
         remote_command.rx,
         APP_READ_BUFER_SIZE);
     HAL_UART_Receive_DMA(app.uart, remote_command.rx, APP_READ_BUFER_SIZE);
 
 #if APP_DEBUG_MODE
-    LCD_Printf("\t+ Bluetooth Available\n");
+    app.display.printf("\t+ Bluetooth Available\n");
 #endif
 }
 
@@ -139,17 +131,17 @@ void __App_Init_Harvesters(void)
 
 void __App_Init_Meteo(void)
 {
-    METEO_Init(app.i2c, &app.renderingEngine, APP_QNH);
+    METEO_Init(app.i2c, &app.display, APP_QNH);
 
     if (!METEO_DataStruct.isBmpWorking) {
 #if APP_DEBUG_MODE
-        LCD_Printf("\t- BMP280 Disabled\n");
+        app.display.printf("\t- BMP280 Disabled\n");
 #endif
         return;
     }
 
 #if APP_DEBUG_MODE
-    LCD_Printf("\t+ BMP280 Available\n");
+    app.display.printf("\t+ BMP280 Available\n");
 #endif
 }
 
@@ -159,7 +151,7 @@ void __App_Init_MPU(void)
     mpu_i2c_init(app.i2c);
     if (mpu_init(NULL)) {
 #if APP_DEBUG_MODE
-        LCD_Printf("\tMPU9250 Disabled\n");
+        app.display.printf("\tMPU9250 Disabled\n");
 #endif
         return;
     }
@@ -189,30 +181,30 @@ void __App_Init_MPU(void)
         motion_data.boxHeight);
 
 #if APP_DEBUG_MODE
-    LCD_Printf("\t+ MPU9250 Available\n");
+    app.display.printf("\t+ MPU9250 Available\n");
 #endif
 }
 
 void App_OnReadRemoteCommand()
 {
-    uint32_t rx_count = RingBuffer_DMA_Count(&remote_command.rx_buf);
+    uint32_t rx_count = RingBuffer_DMA_Count(&remote_command.rxBuffer);
     while (rx_count--) {
-        uint8_t b = RingBuffer_DMA_GetByte(&remote_command.rx_buf);
+        uint8_t b = RingBuffer_DMA_GetByte(&remote_command.rxBuffer);
         if (b == '\r' || b == '\n') {
-            remote_command.cmd[remote_command.cmd_index] = 0;
-            remote_command.cmd_params[remote_command.cmd_params_index] = 0;
-            remote_command.cmd_index = remote_command.cmd_params_index =
-                    remote_command.is_cmd_params = 0;
+            remote_command.cmd[remote_command.cmdIndex] = 0;
+            remote_command.cmdParams[remote_command.cmdParamsIndex] = 0;
+            remote_command.cmdIndex = remote_command.cmdParamsIndex =
+                    remote_command.isCmdParams = 0;
 
-            App_Exec_Command(remote_command.cmd, remote_command.cmd_params);
+            App_Exec_Command(remote_command.cmd, remote_command.cmdParams);
             break;
-        } else if (remote_command.cmd_index > 0 && b == ' '
-                && !remote_command.is_cmd_params) {
-            remote_command.is_cmd_params = 1;
-        } else if (remote_command.is_cmd_params) {
-            remote_command.cmd_params[remote_command.cmd_params_index++] = b;
+        } else if (remote_command.cmdIndex > 0 && b == ' '
+                && !remote_command.isCmdParams) {
+            remote_command.isCmdParams = 1;
+        } else if (remote_command.isCmdParams) {
+            remote_command.cmdParams[remote_command.cmdParamsIndex++] = b;
         } else {
-            remote_command.cmd[remote_command.cmd_index++] = b;
+            remote_command.cmd[remote_command.cmdIndex++] = b;
         }
     }
 }
@@ -224,16 +216,16 @@ void App_Exec_Command(char *command, char *params)
         command);
 
     if (callback == NULL) {
-        LCD_Printf("Undefined command: %s\n", command);
+        app.display.printf("Undefined command: %s\n", command);
         return;
     }
 
 #if APP_DEBUG_MODE
-    LCD_Printf("[DEBUG] CMD: %s [%s]\n", command, params);
+    app.display.printf("[DEBUG] CMD: %s [%s]\n", command, params);
 #endif
     callback(params);
 #if APP_DEBUG_MODE
-    LCD_Printf("\n\n[DEBUG] CMD: %s - DONE\n", command);
+    app.display.printf("\n\n[DEBUG] CMD: %s - DONE\n", command);
 #endif
 }
 
@@ -242,7 +234,7 @@ void App_State(char *name)
     APP_CallbackTypeDef callback = APP_GetCallbackMapItem(app.states, name);
 
     if (callback == NULL) {
-        LCD_Printf("Undefined State: %s\n", name);
+        app.display.printf("Undefined State: %s\n", name);
         return;
     }
 
@@ -257,7 +249,7 @@ void App_State(char *name)
     if (state != NULL) {
         state->name = name;
         state->displayHandle = callback;
-        state->is_update = 1;
+        state->isUpdate = 1;
 
         if (dataHandle != NULL) {
             state->dataHandle = dataHandle;
@@ -273,7 +265,7 @@ void App_Send_Data(uint8_t *data)
 {
 
 #if APP_DEBUG_MODE
-    LCD_Printf("Sending: %s\n", data);
+    app.display.printf("Sending: %s\n", data);
 #endif
 
     HAL_StatusTypeDef status = HAL_UART_Transmit(
@@ -283,13 +275,13 @@ void App_Send_Data(uint8_t *data)
         APP_DEFAULT_TIMEOUT);
 
     if (status != HAL_OK) {
-        LCD_Printf("Send Error: %s\n", data);
+        app.display.printf("Send Error: %s\n", data);
     }
 }
 
 void App_UpdateSatet(void)
 {
-    app.state->is_update = 1;
+    app.state->isUpdate = 1;
 }
 
 /////////////////////////
@@ -303,19 +295,19 @@ void App_Handle_State_Menu(char *state)
 
     char* menu_items[] = { "Meteo Service", "Motion", "EKG", "Arkanoid" };
 
-    LCD_Printf("Menu:\n\n");
+    app.display.printf("Menu:\n\n");
     for (int i = 0; i < sizeof(menu_items) / sizeof(char*); i++) {
-        LCD_Printf("[%d] %s\n", (i + 1), menu_items[i]);
+        app.display.printf("[%d] %s\n", (i + 1), menu_items[i]);
     }
 
-    LCD_Printf("\n\nPlease send command: menu N");
+    app.display.printf("\n\nPlease send command: menu N");
 }
 
 void App_Handle_State_Meteo(char *state)
 {
     METEO_Draw();
 
-    app.renderingEngine.printf("\n\n Back to menu send command: menu");
+    app.display.printf("\n\n Back to menu send command: menu");
 }
 
 void App_Handle_State_Motion(char *state)
@@ -356,6 +348,26 @@ void App_Handle_Command_Ping(char *params)
     App_Send_Data(data);
 }
 
+void App_Handle_Command_Meteo(char *params)
+{
+    if (strcmp(app.state->name, "meteo") != 0) {
+        uint8_t data[] = "Disabled command in current window.\r\n";
+        App_Send_Data(data);
+        return;
+    }
+
+    uint8_t response[100];
+    sprintf(
+        (char *) response,
+        "temp=%f; press=%f; alt=%f; forecast=%s\r\n",
+        METEO_DataStruct.temp,
+        METEO_DataStruct.press,
+        METEO_DataStruct.alt,
+        METEO_DataStruct.forecast);
+
+    App_Send_Data(response);
+}
+
 void App_Handle_Command_Menu(char *params)
 {
     uint8_t index = atoi(params);
@@ -364,7 +376,7 @@ void App_Handle_Command_Menu(char *params)
 
     if (index > (sizeof(menu_items) / sizeof(char*))) {
 #if APP_DEBUG_MODE
-        LCD_Printf("Error unknown menu index");
+        app.display.printf("Error unknown menu index");
 #endif
         return;
     }
@@ -456,7 +468,7 @@ void App_Handle_Harvester_Motion(char *state)
 
 void App_Handle_Harvester_Arkanoid(char *state)
 {
-    if (ark_scene.status == ARKANOID_GAME_STATUS_PLAYING) {
+    if (ARK_Scene.status == ARKANOID_GAME_STATUS_PLAYING) {
         Arkanoid_WorldUpdate();
         App_UpdateSatet();
     }
@@ -473,22 +485,22 @@ void App_Handle_Harvester_EKG(char *state)
 
 void Arkanoid_HandleRusult()
 {
-    if (ark_scene.status == ARKANOID_GAME_STATUS_WIN) {
-        LCD_SetCursor((ark_scene.width / 2) - 40, ark_scene.height / 2);
+    if (ARK_Scene.status == ARKANOID_GAME_STATUS_WIN) {
+        LCD_SetCursor((ARK_Scene.width / 2) - 40, ARK_Scene.height / 2);
         LCD_FillScreen(BLACK);
         LCD_SetTextColor(WHITE, BLACK);
         LCD_SetTextSize(1);
-        LCD_Printf("WIN!");
+        app.display.printf("WIN!");
     } else {
         LCD_FillScreen(BLACK);
         LCD_SetTextColor(WHITE, BLACK);
-        LCD_SetCursor((ark_scene.width / 2) - 10, ark_scene.height / 2);
-        LCD_Printf("Game Over!");
+        LCD_SetCursor((ARK_Scene.width / 2) - 10, ARK_Scene.height / 2);
+        app.display.printf("Game Over!");
     }
 
     osDelay(1500);
 
     App_State("menu");
 
-    Arkanoid_Init(&app.renderingEngine);
+    Arkanoid_Init(&app.display);
 }

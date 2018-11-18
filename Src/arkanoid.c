@@ -1,82 +1,84 @@
 #include "arkanoid.h"
 
-void Arkanoid_Init(APP_RenderingEngineTypeDef *draw_engine)
+void Arkanoid_Init(APP_RenderingEngineTypeDef *display)
 {
-    ark_scene.draw_engine = draw_engine;
+    ARK_Scene.display = display;
 
     // Scene
-    ark_scene.background_color = ark_scene.draw_engine->backgroundColor;
-    ark_scene.width = ark_scene.draw_engine->screenWidth;
-    ark_scene.height = ark_scene.draw_engine->screenHeight;
-    ark_scene.status = ARKANOID_GAME_STATUS_PLAYING;
-    ark_scene.blocks_columns = 3;
-    ark_scene.blocks_rows = 3;
+    ARK_Scene.background_color = ARK_Scene.display->backgroundColor;
+    ARK_Scene.width = ARK_Scene.display->screenWidth;
+    ARK_Scene.height = ARK_Scene.display->screenHeight;
+    ARK_Scene.status = ARKANOID_GAME_STATUS_PLAYING;
+    ARK_Scene.blocks_columns = 3;
+    ARK_Scene.blocks_rows = 3;
 
     // Blocks
-    ark_scene.blocks_size = ark_scene.blocks_columns * ark_scene.blocks_rows;
+    ARK_Scene.blocks_size = ARK_Scene.blocks_columns * ARK_Scene.blocks_rows;
 
-    ark_blocks = (ARK_BlockTypeDef*) calloc(
-        ark_scene.blocks_size,
+    __ARK_Blocks = (ARK_BlockTypeDef*) calloc(
+        ARK_Scene.blocks_size,
         sizeof(ARK_BlockTypeDef));
 
     uint16_t current_row_width = 0;
     uint16_t current_column_index = 0;
     uint16_t current_y = 15;
     uint16_t bound_size = 10;
-    for (int i = 0; i < ark_scene.blocks_size; i++) {
-        ark_blocks[i].is_alive = 1;
-        ark_blocks[i].color = ark_scene.draw_engine->color(
+    for (int i = 0; i < ARK_Scene.blocks_size; i++) {
+        __ARK_Blocks[i].is_alive = 1;
+        __ARK_Blocks[i].color = ARK_Scene.display->color(
             255,
             255,
             (i + 25) * (current_column_index + 25));
-        ark_blocks[i].height = 15;
-        ark_blocks[i].width = (ark_scene.width / ark_scene.blocks_columns) - bound_size;
-        ark_blocks[i].x = current_column_index * (ark_blocks[i].width + bound_size);
-        ark_blocks[i].y = current_y;
-        ark_blocks[i].score = 10;
+        __ARK_Blocks[i].height = 15;
+        __ARK_Blocks[i].width = (ARK_Scene.width / ARK_Scene.blocks_columns)
+                - bound_size;
+        __ARK_Blocks[i].x = current_column_index
+                * (__ARK_Blocks[i].width + bound_size);
+        __ARK_Blocks[i].y = current_y;
+        __ARK_Blocks[i].score = 10;
 
         current_column_index++;
-        current_row_width += ark_blocks[i].width + bound_size;
-        if (current_row_width >= ark_scene.width) {
+        current_row_width += __ARK_Blocks[i].width + bound_size;
+        if (current_row_width >= ARK_Scene.width) {
             current_column_index = 0;
             current_row_width = 0;
-            current_y += ark_blocks[i].height + 5;
+            current_y += __ARK_Blocks[i].height + 5;
         }
     }
 
     //malloc(sizeof(int) * vector->capacity)
 
     // Ball
-    ark_ball.x = ark_scene.width / 2;
-    ark_ball.y = ark_scene.height / 2;
-    ark_ball.radius = 5;
-    ark_ball.color = ark_scene.draw_engine->color(255, 255, 255);
+    __ARK_Ball.x = ARK_Scene.width / 2;
+    __ARK_Ball.y = ARK_Scene.height / 2;
+    __ARK_Ball.radius = 5;
+    __ARK_Ball.color = ARK_Scene.display->color(255, 255, 255);
 
-    ark_ball.velocity_x = 1;
-    ark_ball.velocity_y = 1;
+    __ARK_Ball.velocity_x = 1;
+    __ARK_Ball.velocity_y = 1;
 
-    ark_ball.direction_x = -1;
-    ark_ball.direction_y = -1;
+    __ARK_Ball.direction_x = -1;
+    __ARK_Ball.direction_y = -1;
 
-    ark_ball.previous_x = ark_ball.x;
-    ark_ball.previous_y = ark_ball.y;
+    __ARK_Ball.previous_x = __ARK_Ball.x;
+    __ARK_Ball.previous_y = __ARK_Ball.y;
 
     // Player
-    ark_player.width = 100;
-    ark_player.height = 10;
-    ark_player.x = (ark_scene.width / 2) - (ark_player.width / 2);
-    ark_player.y = ark_scene.height - ark_player.height;
-    ark_player.previous_x = ark_player.x;
-    ark_player.previous_y = ark_player.y;
-    ark_player.color = ark_scene.draw_engine->color(255, 0, 0);
-    ark_player.score = 0;
+    __ARK_Player.width = 100;
+    __ARK_Player.height = 10;
+    __ARK_Player.x = (ARK_Scene.width / 2) - (__ARK_Player.width / 2);
+    __ARK_Player.y = ARK_Scene.height - __ARK_Player.height;
+    __ARK_Player.previous_x = __ARK_Player.x;
+    __ARK_Player.previous_y = __ARK_Player.y;
+    __ARK_Player.color = ARK_Scene.display->color(255, 0, 0);
+    __ARK_Player.score = 0;
 }
 
 void Arkanoid_Draw()
 {
-    if (ark_scene.status == ARKANOID_GAME_STATUS_PLAYING) {
-        ark_scene.draw_engine->cursor(0, 0);
-        ark_scene.draw_engine->printf("Score: %d", ark_player.score);
+    if (ARK_Scene.status == ARKANOID_GAME_STATUS_PLAYING) {
+        ARK_Scene.display->cursor(0, 0);
+        ARK_Scene.display->printf("Score: %d", __ARK_Player.score);
         __Arkanoid_Draw_Ball();
         __Arkanoid_Draw_Player();
         __Arkanoid_Draw_Blocks();
@@ -98,107 +100,111 @@ void Arkanoid_HandleIO(uint16_t GPIO_Pin)
 void __Arkanoid_Draw_Ball()
 {
 
-    if (ark_scene.is_clean_ball) {
-        ark_scene.is_clean_ball = 0;
-        ark_scene.draw_engine->circle(
-            ark_ball.previous_x,
-            ark_ball.previous_y,
-            ark_ball.radius + 2,
-            ark_scene.background_color);
+    if (ARK_Scene.is_clean_ball) {
+        ARK_Scene.is_clean_ball = 0;
+        ARK_Scene.display->circle(
+            __ARK_Ball.previous_x,
+            __ARK_Ball.previous_y,
+            __ARK_Ball.radius + 2,
+            ARK_Scene.background_color);
     }
 
-    ark_scene.draw_engine->circle(ark_ball.x, ark_ball.y, ark_ball.radius, ark_ball.color);
+    ARK_Scene.display->circle(
+        __ARK_Ball.x,
+        __ARK_Ball.y,
+        __ARK_Ball.radius,
+        __ARK_Ball.color);
 }
 
 void __Arkanoid_Draw_Blocks()
 {
-    for (int i = 0; i < ark_scene.blocks_size; i++) {
+    for (int i = 0; i < ARK_Scene.blocks_size; i++) {
 
-        if (ark_blocks[i].is_destroying) {
-            ark_blocks[i].is_destroying = 0;
-            ark_scene.draw_engine->rect(
-                ark_blocks[i].x,
-                ark_blocks[i].y,
-                ark_blocks[i].width,
-                ark_blocks[i].height,
-                ark_scene.background_color);
+        if (__ARK_Blocks[i].is_destroying) {
+            __ARK_Blocks[i].is_destroying = 0;
+            ARK_Scene.display->rect(
+                __ARK_Blocks[i].x,
+                __ARK_Blocks[i].y,
+                __ARK_Blocks[i].width,
+                __ARK_Blocks[i].height,
+                ARK_Scene.background_color);
         }
 
-        if (!ark_blocks[i].is_alive) {
+        if (!__ARK_Blocks[i].is_alive) {
             continue;
         }
-        ark_scene.draw_engine->rect(
-            ark_blocks[i].x,
-            ark_blocks[i].y,
-            ark_blocks[i].width,
-            ark_blocks[i].height,
-            ark_blocks[i].color);
+        ARK_Scene.display->rect(
+            __ARK_Blocks[i].x,
+            __ARK_Blocks[i].y,
+            __ARK_Blocks[i].width,
+            __ARK_Blocks[i].height,
+            __ARK_Blocks[i].color);
     }
 }
 
 void __Arkanoid_Draw_Player()
 {
 
-    if (ark_scene.is_clean_player) {
-        ark_scene.is_clean_player = 0;
-        ark_scene.draw_engine->rect(
+    if (ARK_Scene.is_clean_player) {
+        ARK_Scene.is_clean_player = 0;
+        ARK_Scene.display->rect(
             0,
-            ark_player.previous_y,
-            ark_scene.width,
-            ark_player.height,
-            ark_scene.background_color);
+            __ARK_Player.previous_y,
+            ARK_Scene.width,
+            __ARK_Player.height,
+            ARK_Scene.background_color);
 
     }
 
-    ark_scene.draw_engine->rect(
-        ark_player.x,
-        ark_player.y,
-        ark_player.width,
-        ark_player.height,
-        ark_player.color);
+    ARK_Scene.display->rect(
+        __ARK_Player.x,
+        __ARK_Player.y,
+        __ARK_Player.width,
+        __ARK_Player.height,
+        __ARK_Player.color);
 
 }
 
 void __Arkanoid_Physic_MovePlayerLeft()
 {
-    ark_scene.is_clean_player = 1;
+    ARK_Scene.is_clean_player = 1;
 
-    ark_player.previous_x = ark_player.x;
-    ark_player.previous_y = ark_player.y;
+    __ARK_Player.previous_x = __ARK_Player.x;
+    __ARK_Player.previous_y = __ARK_Player.y;
 
-    ark_player.x -= 10;
+    __ARK_Player.x -= 10;
 
-    if (ark_player.x <= 0) {
-        ark_player.x = 0;
+    if (__ARK_Player.x <= 0) {
+        __ARK_Player.x = 0;
     }
 }
 
 void __Arkanoid_Physic_MovePlayerRight()
 {
-    ark_scene.is_clean_player = 1;
+    ARK_Scene.is_clean_player = 1;
 
-    ark_player.previous_x = ark_player.x;
-    ark_player.previous_y = ark_player.y;
+    __ARK_Player.previous_x = __ARK_Player.x;
+    __ARK_Player.previous_y = __ARK_Player.y;
 
-    ark_player.x += 10;
+    __ARK_Player.x += 10;
 
-    if ((ark_player.x + ark_player.width) >= ark_scene.width) {
-        ark_player.x = ark_scene.width - ark_player.width;
+    if ((__ARK_Player.x + __ARK_Player.width) >= ARK_Scene.width) {
+        __ARK_Player.x = ARK_Scene.width - __ARK_Player.width;
     }
 
 }
 
 void __Arkanoid_Physic_ColissionDetection()
 {
-    int16_t x = ark_ball.x;
-    int16_t y = ark_ball.y;
-    int16_t bound_x = ark_ball.radius / 2;
-    int16_t bound_y = ark_ball.radius / 2;
+    int16_t x = __ARK_Ball.x;
+    int16_t y = __ARK_Ball.y;
+    int16_t bound_x = __ARK_Ball.radius / 2;
+    int16_t bound_y = __ARK_Ball.radius / 2;
 
-    int16_t target_x = ark_player.x + (ark_player.width / 2);
-    int16_t target_y = ark_player.y;
-    int16_t target_bound_x = ark_player.width / 2;
-    int16_t target_bound_y = ark_player.height / 2;
+    int16_t target_x = __ARK_Player.x + (__ARK_Player.width / 2);
+    int16_t target_y = __ARK_Player.y;
+    int16_t target_bound_x = __ARK_Player.width / 2;
+    int16_t target_bound_y = __ARK_Player.height / 2;
 
     if (__Arkanoid_Physic_HasCollision(
         x,
@@ -209,17 +215,17 @@ void __Arkanoid_Physic_ColissionDetection()
         target_y,
         target_bound_x,
         target_bound_y)) {
-        ark_ball.direction_y *= -1;
+        __ARK_Ball.direction_y *= -1;
     } else {
-        for (int i = 0; i < ark_scene.blocks_size; i++) {
-            if (!ark_blocks[i].is_alive) {
+        for (int i = 0; i < ARK_Scene.blocks_size; i++) {
+            if (!__ARK_Blocks[i].is_alive) {
                 continue;
             }
 
-            target_bound_x = ark_blocks[i].width / 2;
-            target_bound_y = ark_blocks[i].height / 2;
-            target_x = ark_blocks[i].x + target_bound_x;
-            target_y = ark_blocks[i].y + target_bound_y;
+            target_bound_x = __ARK_Blocks[i].width / 2;
+            target_bound_y = __ARK_Blocks[i].height / 2;
+            target_x = __ARK_Blocks[i].x + target_bound_x;
+            target_y = __ARK_Blocks[i].y + target_bound_y;
             if (__Arkanoid_Physic_HasCollision(
                 x,
                 y,
@@ -229,10 +235,10 @@ void __Arkanoid_Physic_ColissionDetection()
                 target_y,
                 target_bound_x,
                 target_bound_y)) {
-                ark_blocks[i].is_destroying = 1;
-                ark_blocks[i].is_alive = 0;
-                ark_ball.direction_y *= -1;
-                ark_player.score += ark_blocks[i].score;
+                __ARK_Blocks[i].is_destroying = 1;
+                __ARK_Blocks[i].is_alive = 0;
+                __ARK_Ball.direction_y *= -1;
+                __ARK_Player.score += __ARK_Blocks[i].score;
             }
         }
     }
@@ -259,29 +265,29 @@ uint8_t __Arkanoid_Physic_HasCollision(
 void __Arkanoid_Physic_MoveBall()
 {
 
-    ark_scene.is_clean_ball = 1;
+    ARK_Scene.is_clean_ball = 1;
 
-    ark_ball.previous_x = ark_ball.x;
-    ark_ball.previous_y = ark_ball.y;
+    __ARK_Ball.previous_x = __ARK_Ball.x;
+    __ARK_Ball.previous_y = __ARK_Ball.y;
 
-    if (ark_ball.x >= ark_scene.width || ark_ball.x <= 0) {
-        ark_ball.direction_x *= -1;
-    } else if (ark_ball.y <= 0) {
-        ark_ball.direction_y *= -1;
-    } else if (ark_ball.y >= ark_scene.height) {
-        ark_scene.status = ARKANOID_GAME_STATUS_LOSE;
+    if (__ARK_Ball.x >= ARK_Scene.width || __ARK_Ball.x <= 0) {
+        __ARK_Ball.direction_x *= -1;
+    } else if (__ARK_Ball.y <= 0) {
+        __ARK_Ball.direction_y *= -1;
+    } else if (__ARK_Ball.y >= ARK_Scene.height) {
+        ARK_Scene.status = ARKANOID_GAME_STATUS_LOSE;
         //ball.direction_y *= -1;
     }
 
-    ark_ball.x += ark_ball.velocity_x * ark_ball.direction_x;
-    ark_ball.y += ark_ball.velocity_y * ark_ball.direction_y;
+    __ARK_Ball.x += __ARK_Ball.velocity_x * __ARK_Ball.direction_x;
+    __ARK_Ball.y += __ARK_Ball.velocity_y * __ARK_Ball.direction_y;
 
 }
 
 void Arkanoid_WorldUpdate()
 {
 
-    if (ark_scene.status != ARKANOID_GAME_STATUS_PLAYING) {
+    if (ARK_Scene.status != ARKANOID_GAME_STATUS_PLAYING) {
         return;
     }
 
@@ -289,27 +295,27 @@ void Arkanoid_WorldUpdate()
     __Arkanoid_Physic_ColissionDetection();
 
     uint8_t has_alive_blocks = 0;
-    for (int i = 0; i < ark_scene.blocks_size; i++) {
-        if (ark_blocks[i].is_alive) {
+    for (int i = 0; i < ARK_Scene.blocks_size; i++) {
+        if (__ARK_Blocks[i].is_alive) {
             has_alive_blocks = 1;
             break;
         }
     }
 
     if (!has_alive_blocks) {
-        ark_scene.status = ARKANOID_GAME_STATUS_WIN;
+        ARK_Scene.status = ARKANOID_GAME_STATUS_WIN;
     }
 }
 
 __weak void Arkanoid_HandleRusult()
 {
-    if (ark_scene.status == ARKANOID_GAME_STATUS_WIN) {
-        ark_scene.draw_engine->cursor((ark_scene.width / 2) - 40, ark_scene.height / 2);
-        ark_scene.draw_engine->background(ark_scene.draw_engine->backgroundColor);
-        ark_scene.draw_engine->printf("WIN!");
+    if (ARK_Scene.status == ARKANOID_GAME_STATUS_WIN) {
+        ARK_Scene.display->cursor((ARK_Scene.width / 2) - 40, ARK_Scene.height / 2);
+        ARK_Scene.display->background(ARK_Scene.display->backgroundColor);
+        ARK_Scene.display->printf("WIN!");
     } else {
-        ark_scene.draw_engine->background(ark_scene.draw_engine->backgroundColor);
-        ark_scene.draw_engine->cursor((ark_scene.width / 2) - 10, ark_scene.height / 2);
-        ark_scene.draw_engine->printf("Game Over!");
+        ARK_Scene.display->background(ARK_Scene.display->backgroundColor);
+        ARK_Scene.display->cursor((ARK_Scene.width / 2) - 10, ARK_Scene.height / 2);
+        ARK_Scene.display->printf("Game Over!");
     }
 }

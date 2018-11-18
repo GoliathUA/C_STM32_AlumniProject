@@ -15,14 +15,15 @@
 #include "ekg.h"
 #include "meteo.h"
 
-#define APP_DEBUG_MODE 1
+#define APP_DEBUG_MODE 0
 #define APP_READ_BUFER_SIZE 256
 #define APP_DEFAULT_TIMEOUT 100
+#define APP_CMD_LENGTH 128
 #define APP_QNH 1013
 
 typedef struct
 {
-    uint8_t is_update;
+    uint8_t isUpdate;
     char *name;
     APP_CallbackTypeDef displayHandle;
     APP_CallbackTypeDef dataHandle;
@@ -52,23 +53,17 @@ struct
 
 struct
 {
-    RingBuffer_DMA rx_buf;
+    RingBuffer_DMA rxBuffer;
     uint8_t rx[APP_READ_BUFER_SIZE];
 
-    uint8_t is_cmd_params;
+    uint8_t isCmdParams;
 
-    uint8_t cmd_index;
-    char cmd[128];
+    uint8_t cmdIndex;
+    char cmd[APP_CMD_LENGTH];
 
-    uint8_t cmd_params_index;
-    char cmd_params[128];
+    uint8_t cmdParamsIndex;
+    char cmdParams[APP_CMD_LENGTH];
 } remote_command;
-
-struct
-{
-    uint32_t adc[2];
-
-} app_buffers;
 
 struct
 {
@@ -84,7 +79,7 @@ struct
 
     APP_StateTypeDef *state;
 
-    APP_RenderingEngineTypeDef renderingEngine;
+    APP_RenderingEngineTypeDef display;
 
 } app;
 
@@ -110,6 +105,7 @@ void App_State(char *state);
 
 void App_Handle_Command_Ping(char *params);
 void App_Handle_Command_Menu(char *params);
+void App_Handle_Command_Meteo(char *params);
 
 void App_Handle_State_Menu(char *state);
 void App_Handle_State_Meteo(char *state);

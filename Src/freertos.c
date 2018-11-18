@@ -191,11 +191,11 @@ void StartDisplayTask(void const * argument)
 
         }
 
-        if (app.state != NULL && app.state->is_update) {
+        if (app.state != NULL && app.state->isUpdate) {
             status = osMutexWait(appMutexHandle, osWaitForever);
             if (status == osOK) {
                 app.state->displayHandle(app.state->name);
-                app.state->is_update = 0;
+                app.state->isUpdate = 0;
                 osMutexRelease(appMutexHandle);
             }
         }

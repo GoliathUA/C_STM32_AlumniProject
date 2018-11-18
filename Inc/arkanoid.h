@@ -1,4 +1,3 @@
-#include "stm32f4xx_hal.h"
 #include "app_util.h"
 
 #define ARKANOID_BUTTON_LEFT BUTTON_LEFT_Pin
@@ -79,19 +78,21 @@ typedef struct
     uint8_t is_clean_ball;
     uint8_t is_clean_player;
 
-    APP_RenderingEngineTypeDef *draw_engine;
+    APP_RenderingEngineTypeDef *display;
 
 } ARK_SceneStateTypeDef;
 
-volatile ARK_SceneStateTypeDef ark_scene;
+volatile ARK_SceneStateTypeDef ARK_Scene;
 
-volatile ARK_BallTypeDef ark_ball;
+///////////////////
+/// Private Variables
+///////////////////
 
-volatile ARK_PlayerTypeDef ark_player;
+volatile ARK_BallTypeDef __ARK_Ball;
+volatile ARK_PlayerTypeDef __ARK_Player;
+volatile ARK_BlockTypeDef* __ARK_Blocks;
 
-volatile ARK_BlockTypeDef* ark_blocks;
-
-void Arkanoid_Init(APP_RenderingEngineTypeDef *draw_engine);
+void Arkanoid_Init(APP_RenderingEngineTypeDef *display);
 
 void Arkanoid_Draw();
 void Arkanoid_HandleRusult();
